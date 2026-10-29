@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Guess the Movie</title>
+<style>
+:root{--bg:#2a1a63;--bg2:#4b2fa8;--sun:#ffc93c;--coral:#ff5d73;--mint:#2ec4a6;--cream:#fff8e8;--ink:#2a1a63;--red:#ff4d5e;--green:#2ec47a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{margin:0;height:100%;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:var(--cream);background:var(--bg)}
+body{background:radial-gradient(circle at 20% 0,var(--bg2),var(--bg) 60%);overflow:hidden}
+.screen{display:none;height:100%;flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
+.screen.on{display:flex}
+button{font:inherit;border:0;cursor:pointer}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chip{background:var(--sun);color:var(--ink);font-weight:800;padding:8px 14px;border-radius:999px;box-shadow:0 4px 0 #c9971a;font-size:18px}
+.back{background:rgba(255,255,255,.15);color:var(--cream);width:44px;height:44px;border-radius:14px;font-size:22px}
+h1{font-size:34px;margin:18px 0 4px;text-align:center}
+.sub{text-align:center;opacity:.8;margin:0 0 18px}
+.list{display:flex;flex-direction:column;gap:14px;overflow:auto;padding:6px 2px}
+.group{display:flex;align-items:center;gap:14px;background:var(--cream);color:var(--ink);border-radius:22px;padding:16px;text-align:left;box-shadow:0 6px 0 rgba(0,0,0,.25);width:100%}
+.group .ic{font-size:36px;background:var(--sun);width:64px;height:64px;border-radius:18px;display:grid;place-items:center;flex:none}
+.group b{font-size:20px;display:block}
+.bar{height:10px;background:#e4dcc6;border-radius:9px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mint);border-radius:9px}
+.group.lock{opacity:.55;filter:grayscale(.6)}
+.lvl{font-weight:800;font-size:18px}
+.frame{margin:12px auto 10px;width:min(100%,360px);aspect-ratio:4/3;border-radius:22px;border:6px solid var(--cream);background:#fff8e8 center/contain no-repeat;box-shadow:0 8px 0 rgba(0,0,0,.3);transform:rotate(-1.2deg)}
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin:8px 0}
+.word{display:flex;gap:5px;flex-direction:row}
+.cell{width:38px;height:46px;border-radius:12px;background:var(--cream);color:var(--ink);font-size:24px;font-weight:800;display:grid;place-items:center;box-shadow:0 4px 0 #cdbf9c;border:3px solid transparent}
+.cell.hint{background:var(--sun);box-shadow:0 4px 0 #c9971a}
+.cell.bad{background:var(--red);color:#fff;box-shadow:0 4px 0 #b22d3b}
+.cell.ok{background:var(--green);color:#fff;box-shadow:0 4px 0 #1b8a53}
+.shake{animation:sh .4s}
+@keyframes sh{20%{transform:translateX(8px)}40%{transform:translateX(-8px)}60%{transform:translateX(5px)}80%{transform:translateX(-5px)}}
+.pop .cell{animation:pp .5s}
+@keyframes pp{50%{transform:scale(1.25) rotate(-6deg)}}
+.actions{display:flex;gap:10px;margin:8px 0}
+.btn{flex:1;padding:13px;border-radius:16px;font-weight:800;font-size:18px;color:var(--ink)}
+.btn.hintb{background:var(--sun);box-shadow:0 5px 0 #c9971a}
+.btn.go{background:var(--mint);box-shadow:0 5px 0 #1b8a73;color:#06352c}
+.btn:active,.key:active{transform:translateY(3px);box-shadow:none}
+.kb{display:flex;flex-direction:column;gap:6px;margin-top:auto}.kr{display:flex;justify-content:center;gap:5px}
+.key{flex:1;min-width:0;max-width:40px;background:var(--cream);color:var(--ink);border-radius:11px;padding:0;height:44px;font-size:20px;font-weight:700;box-shadow:0 4px 0 #cdbf9c}
+.key.del{flex:1.6;max-width:64px;background:var(--coral);color:#fff;box-shadow:0 4px 0 #b83a4d}
+.toast{position:fixed;left:50%;top:70px;transform:translate(-50%,-20px);background:var(--cream);color:var(--ink);padding:10px 18px;border-radius:14px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:9;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(20,10,60,.8);display:none;place-items:center;z-index:10;padding:24px}
+.modal.on{display:grid}
+.card{background:var(--cream);color:var(--ink);border-radius:26px;padding:26px;text-align:center;max-width:320px;width:100%}
+.card .big{font-size:64px}
+.card h2{margin:6px 0}
+@media (max-height:700px){.frame{width:min(100%,280px)}.cell{width:34px;height:40px;font-size:21px}.key{height:40px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<section class="screen on" id="home">
+  <div class="top"><span></span><span class="chip">💡 <span class="pts">10</span></span></div>
+  <h1>🎬 Guess the Movie</h1>
+  <p class="sub">Look at the picture and guess the movie</p>
+  <div class="list" id="groups"></div>
+</section>
+
+<section class="screen" id="game">
+  <div class="top">
+    <button class="back" id="backBtn" aria-label="Back">←</button>
+    <span class="lvl" id="lvl"></span>
+    <span class="chip">💡 <span class="pts">10</span></span>
+  </div>
+  <div class="frame" id="pic"></div>
+  <div class="slots" id="slots"></div>
+  <div class="actions">
+    <button class="btn hintb" id="hintBtn">💡 Hint (1)</button>
+    <button class="btn go" id="okBtn">OK ✓</button>
+  </div>
+  <div class="kb" id="kb"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="card">
+  <div class="big">🏆</div><h2 id="mTitle"></h2><p id="mText"></p>
+  <button class="btn go" id="mBtn" style="width:100%">Done</button>
+</div></div>
+
+<script src="movies.js"></script>
+<script>
+const KEY = "movieGuessSave1";
+let save = { points: 10, progress: {}, done: {} };
+try { Object.assign(save, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+const store = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
+const $ = id => document.getElementById(id);
+const norm = s => s.toUpperCase();
+
+let group, idx, replay, cells, words, locked;
+
+function show(id) { document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id === id)); }
+function toast(t) { const e = $("toast"); e.textContent = t; e.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 1800); }
+function updPts() { document.querySelectorAll(".pts").forEach(e => e.textContent = save.points); }
+
+function renderHome() {
+  updPts();
+  $("groups").innerHTML = GROUPS.map((g, i) => {
+    const open = i === 0 || save.done[GROUPS[i - 1].id];
+    const p = save.done[g.id] ? g.movies.length : (save.progress[g.id] || 0);
+    return `<button class="group ${open ? "" : "lock"}" data-i="${i}">
+      <span class="ic">${open ? g.emoji : "🔒"}</span>
+      <span style="flex:1"><b>${g.name}</b>${p} of ${g.movies.length}<div class="bar"><i style="width:${p / g.movies.length * 100}%"></i></div></span>
+    </button>`;
+  }).join("");
+  document.querySelectorAll(".group").forEach(b => b.onclick = () => {
+    const i = +b.dataset.i, g = GROUPS[i];
+    if (i > 0 && !save.done[GROUPS[i - 1].id]) return toast("Finish the previous group first 🔒");
+    group = g; replay = !!save.done[g.id]; idx = replay ? 0 : (save.progress[g.id] || 0);
+    startLevel(); show("game");
+  });
+}
+
+function reveal(c) { c.v = c.o; c.lock = true; c.st = "hint"; }
+
+function startLevel() {
+  const m = group.movies[idx];
+  locked = false;
+  words = m.name.split(" ").filter(Boolean);
+  cells = [];
+  words.forEach((w, wi) => [...w].forEach(ch => cells.push({ t: norm(ch), o: ch.toUpperCase(), w: wi, v: "", lock: false, st: "" })));
+  const n = cells.length, r = n > 10 ? 2 : n > 5 ? 1 : 0;
+  for (let k = 0; k < r; k++) { const free = cells.filter(c => !c.lock); reveal(free[Math.floor(Math.random() * free.length)]); }
+  $("pic").style.backgroundImage = `url("${m.img}")`;
+  $("lvl").textContent = `Level ${idx + 1} / ${group.movies.length}` + (replay ? " (replay)" : "");
+  renderSlots(); updPts();
+}
+
+function renderSlots() {
+  let i = 0;
+  $("slots").innerHTML = words.map(w => `<div class="word">${[...w].map(() => {
+    const c = cells[i], k = i++;
+    return `<div class="cell ${c.st}" data-k="${k}">${c.v}</div>`;
+  }).join("")}</div>`).join("");
+  document.querySelectorAll(".cell").forEach(e => e.onclick = () => {
+    if (locked) return; const c = cells[+e.dataset.k];
+    if (!c.lock && c.v) { clearBad(); c.v = ""; renderSlots(); }
+  });
+}
+function clearBad() { cells.forEach(c => { if (c.st === "bad") c.st = ""; }); }
+
+function typeLetter(l) {
+  if (locked) return; clearBad();
+  const c = cells.find(c => !c.lock && !c.v);
+  if (c) { c.v = l; renderSlots(); }
+}
+function del() {
+  if (locked) return; clearBad();
+  const f = cells.filter(c => !c.lock && c.v).pop();
+  if (f) { f.v = ""; renderSlots(); }
+}
+
+$("hintBtn").onclick = () => {
+  if (locked) return;
+  if (save.points < 1) return toast("You are out of hint points 😅");
+  const free = cells.filter(c => !c.lock);
+  if (!free.length) return toast("All letters are already shown!");
+  clearBad(); save.points--; store();
+  reveal(free[Math.floor(Math.random() * free.length)]);
+  renderSlots(); updPts();
+};
+
+$("okBtn").onclick = () => {
+  if (locked) return;
+  if (cells.some(c => !c.v)) return toast("Fill in all the letters first");
+  if (cells.every(c => norm(c.v) === c.t)) {
+    locked = true; cells.forEach(c => c.st = "ok"); renderSlots();
+    $("slots").classList.add("pop"); toast("Great job! 🎉");
+    setTimeout(() => { $("slots").classList.remove("pop"); nextLevel(); }, 1300);
+  } else {
+    cells.forEach(c => { if (!c.lock) c.st = "bad"; });
+    renderSlots(); $("slots").classList.remove("shake"); void $("slots").offsetWidth; $("slots").classList.add("shake");
+    toast("Not correct. Enter the name again");
+  }
+};
+
+function nextLevel() {
+  idx++;
+  const total = group.movies.length;
+  if (!replay) { save.progress[group.id] = idx; }
+  if (idx >= total) {
+    let msg;
+    if (!replay) { save.done[group.id] = true; save.points += 2; msg = "You earned 2 bonus hint points 💡💡"; if (GROUPS.some((g, i) => GROUPS[i - 1] === group)) msg += " The next group is unlocked!"; }
+    else msg = "Replay finished.";
+    store();
+    $("mTitle").textContent = "You finished " + group.name + "!"; $("mText").textContent = msg;
+    $("modal").classList.add("on");
+    return;
+  }
+  store(); startLevel();
+}
+$("mBtn").onclick = () => { $("modal").classList.remove("on"); show("home"); renderHome(); };
+$("backBtn").onclick = () => { show("home"); renderHome(); };
+
+const ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+$("kb").innerHTML = ROWS.map((r, i) => `<div class="kr">${[...r].map(l => `<button class="key" data-l="${l}">${l}</button>`).join("")}${i === 2 ? '<button class="key del" id="delK">⌫</button>' : ""}</div>`).join("");
+document.querySelectorAll(".key[data-l]").forEach(b => b.onclick = () => typeLetter(b.dataset.l));
+$("delK").onclick = del;
+
+renderHome();
+</script>
+</body>
+</html>
